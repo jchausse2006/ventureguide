@@ -1,18 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
+
 const client = new Anthropic()
 
 export async function POST(req: NextRequest) {
   try {
     const { businessDescription } = await req.json()
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json({ error: 'Missing API key' }, { status: 500 })
-    }
-
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1000,
+      max_tokens: 2000,
       messages: [
         {
           role: 'user',
@@ -29,12 +26,12 @@ Rules:
 - Vinny tone: direct, honest, no fluff, slightly sharp but respectful
 - Include a short vinny field — a one-line comment from Vinny that explains WHY this question matters
 
-Return ONLY valid JSON, no markdown, no explanation:
+Return ONLY valid JSON with no markdown and no extra text before or after:
 {
   "questions": [
     {
       "id": "unique_id",
-      "text": "Question text",
+      "text": "Question text here",
       "sub": "One sentence explaining why this matters for their specific business",
       "vinny": "Vinny one-liner about this question",
       "multi": false,
@@ -52,7 +49,11 @@ Business: ${businessDescription}`,
 
     const text = (message.content[0] as { text: string }).text
     const clean = text.replace(/```json|```/g, '').trim()
-    const parsed = JSON.parse(clean)
+    const jsonMatch = clean.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      return NextResponse.json({ error: 'No JSON in response' }, { status: 500 })
+    }
+    const parsed = JSON.parse(jsonMatch[0])
     return NextResponse.json(parsed)
 
   } catch (err: any) {
