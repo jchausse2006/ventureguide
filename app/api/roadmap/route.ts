@@ -16,35 +16,39 @@ IMPORTANT: This person already runs a ${pathName} business and is starting at Ph
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 2000,
+    max_tokens: 2500,
     messages: [
       {
         role: 'user',
-        content: `You are VentureGuide. Generate an honest, specific 5-phase business roadmap for someone running a "${pathName}" business.
+        content: `You are VentureGuide. Generate a highly specific 5-phase business roadmap for: "${pathName}"
+
 ${scalingContext}
-Each phase has a label, a one-sentence goal, and 4-8 modules. Each module has a title and a type.
+
+CRITICAL RULES FOR SPECIFICITY:
+- Every single module title must be specific to "${pathName}" — not generic business advice
+- If the path mentions a specific niche, technology, platform, or audience — every module must reflect that
+- Generic module titles like "Getting your first client" or "Building systems" are unacceptable
+- Specific module titles like "Finding your first React Native client through cold outreach to funded startups" are correct
+- Think about what someone actually needs to know to succeed in THIS exact business — not business in general
+- If the path involves technology, name the specific tools, platforms, or languages
+- If the path involves a specific market or customer type, name them explicitly in every relevant module
+- Modules should feel like they were written by someone who has actually built this specific business before
+- Phase descriptions should also be specific to this path — not generic milestones
 
 Module types:
-- "foundation" = business skill applied to this path
-- "action" = specific step for this exact path and stage
-- "milestone" = a major achievement checkpoint
+- "foundation" = a core skill or concept specific to this path
+- "action" = a specific step someone takes in this exact business
+- "milestone" = a major achievement checkpoint relevant to this path
 
-Write each module title as the NAME of a lesson — not a literal instruction. It should hint at what they will learn without fully explaining it.
-
-WRONG: "Register an LLC and get a dealer license"
-RIGHT: "Setting up your business legally — entity type, licensing, and what you actually need"
-
-Make modules SPECIFIC to ${pathName} and appropriate for someone starting at Phase ${startPhase}.
-
-JSON only, no markdown:
+Return ONLY valid JSON, no markdown, no explanation:
 {
   "phases": [
     {
       "phase": 1,
       "label": "Launch",
-      "description": "one sentence goal",
+      "description": "one sentence goal specific to ${pathName}",
       "modules": [
-        { "id": 1, "title": "lesson name specific to ${pathName}", "type": "foundation|action|milestone" }
+        { "id": 1, "title": "specific lesson title for ${pathName}", "type": "foundation|action|milestone" }
       ]
     }
   ]
@@ -56,7 +60,11 @@ Return exactly 5 phases. Phase 1 should have 6-8 modules. Phases 2-4 should have
   })
 
   const text = (message.content[0] as { text: string }).text
-  const parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
-
+  const clean = text.replace(/```json|```/g, '').trim()
+  const jsonMatch = clean.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) {
+    return NextResponse.json({ error: 'No JSON found' }, { status: 500 })
+  }
+  const parsed = JSON.parse(jsonMatch[0])
   return NextResponse.json(parsed)
 }
