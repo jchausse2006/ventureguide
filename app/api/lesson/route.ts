@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const { pathName, moduleTitle, phaseLabel, phaseNumber } = await req.json()
 
     const message = await client.messages.create({
-      model: 'claude-sonnet-5',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2500,
       messages: [
         {
@@ -19,7 +19,7 @@ BUSINESS: ${pathName}
 PHASE: ${phaseNumber} — ${phaseLabel}
 THIS STEP: ${moduleTitle}
 
-Write a lesson that someone can actually follow today. Not theory. Not a summary of what they should learn. The actual thing they do.
+Write a lesson someone can actually follow today. Not theory. Not a summary of what they should learn. The actual thing they do.
 
 TONE:
 - Direct, honest, no hype. You are the opposite of a course seller.
@@ -36,7 +36,7 @@ ACCURACY — DO NOT BREAK THIS:
 CONTENT RULES:
 - Every part must be specific to "${pathName}" — a generic version of this lesson is a failure
 - Steps are things they DO, in order, starting with a verb
-- Each step needs enough detail to actually act on it without guessing
+- Each step needs enough detail to act on without guessing
 - Mistakes must be real mistakes people make in this specific business
 
 Return ONLY valid JSON, no markdown:
@@ -63,8 +63,13 @@ Give 3 to 6 steps and 2 to 3 mistakes.`,
       ],
     })
 
-    const text = (message.content[0] as { text: string }).text
-    const clean = text.replace(/```json|```/g, '').trim()
+    const textBlock = message.content.find((b: any) => b.type === 'text') as { text: string } | undefined
+    if (!textBlock?.text) {
+      console.error('Unexpected response shape:', JSON.stringify(message.content))
+      return NextResponse.json({ error: 'No text in model response' }, { status: 500 })
+    }
+
+    const clean = textBlock.text.replace(/```json|```/g, '').trim()
     const jsonMatch = clean.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       return NextResponse.json({ error: 'No JSON found' }, { status: 500 })
