@@ -4,41 +4,57 @@ import { NextRequest, NextResponse } from 'next/server'
 const client = new Anthropic()
 
 export async function POST(req: NextRequest) {
-  const { pathName, startPhase = 1, mode = 'discovery' } = await req.json()
+  try {
+    const { pathName, startPhase = 1, mode = 'discovery' } = await req.json()
 
-  const scalingContext = startPhase > 1 ? `
-IMPORTANT: This person already runs a ${pathName} business and is starting at Phase ${startPhase}.
-- Phases 1 through ${startPhase - 1} should reflect foundational work they have already completed
-- Phase ${startPhase} is where their real work begins — make it specific to what someone at this stage actually needs
-- Do NOT include beginner basics like "get your first client" or "set up a bank account" in Phase ${startPhase} or beyond
+    const scalingContext = startPhase > 1 ? `
+STAGE CONTEXT: This person already runs this business and is starting at Phase ${startPhase}.
+- Phases 1 through ${startPhase - 1} reflect foundational work they have already completed
+- Phase ${startPhase} is where their real work begins right now
+- Do NOT include beginner basics like "get your first client" in Phase ${startPhase} or beyond
 - Focus on scaling, systems, hiring, and growth from Phase ${startPhase} onward
 ` : ''
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 2500,
-    messages: [
-      {
-        role: 'user',
-        content: `You are VentureGuide. Generate a highly specific 5-phase business roadmap for: "${pathName}"
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2500,
+      messages: [
+        {
+          role: 'user',
+          content: `You are VentureGuide. Generate a 5-phase business roadmap for: "${pathName}"
 
 ${scalingContext}
 
-CRITICAL RULES FOR SPECIFICITY:
-- Every single module title must be specific to "${pathName}" — not generic business advice
-- If the path mentions a specific niche, technology, platform, or audience — every module must reflect that
-- Generic module titles like "Getting your first client" or "Building systems" are unacceptable
-- Specific module titles like "Finding your first React Native client through cold outreach to funded startups" are correct
-- Think about what someone actually needs to know to succeed in THIS exact business — not business in general
-- If the path involves technology, name the specific tools, platforms, or languages
-- If the path involves a specific market or customer type, name them explicitly in every relevant module
-- Modules should feel like they were written by someone who has actually built this specific business before
-- Phase descriptions should also be specific to this path — not generic milestones
+MODULE TITLE RULES — THIS IS THE MOST IMPORTANT PART:
+- Every module title MUST start with a present-tense action verb
+- Maximum 6 words. Shorter is always better.
+- Titles are action items a person does, not lessons they read
+- No colons, no dashes, no explanatory clauses
+
+WRONG: "Understanding how to price your services in a competitive market"
+RIGHT: "Price your first three offers"
+
+WRONG: "Learning the fundamentals of client acquisition through cold outreach"
+RIGHT: "Send 20 cold outreach messages"
+
+WRONG: "Building a system for managing multiple client relationships at once"
+RIGHT: "Build your client tracking system"
+
+WRONG: "Setting up your business legally — entity type, licensing, and permits"
+RIGHT: "Register your business entity"
+
+SPECIFICITY RULES:
+- Every title must be specific to "${pathName}" — never generic business advice
+- Name real tools, platforms, or customer types where it helps
+- NEVER invent company names, competitors, apps, or brands
+- If you are not certain a company exists, describe the category instead of naming it
 
 Module types:
-- "foundation" = a core skill or concept specific to this path
-- "action" = a specific step someone takes in this exact business
-- "milestone" = a major achievement checkpoint relevant to this path
+- "foundation" = a core skill specific to this path
+- "action" = a specific step in this exact business
+- "milestone" = a major achievement checkpoint
+
+Phase descriptions: one short sentence, under 12 words, specific to this path.
 
 Return ONLY valid JSON, no markdown, no explanation:
 {
@@ -46,25 +62,31 @@ Return ONLY valid JSON, no markdown, no explanation:
     {
       "phase": 1,
       "label": "Launch",
-      "description": "one sentence goal specific to ${pathName}",
+      "description": "short goal specific to this path",
       "modules": [
-        { "id": 1, "title": "specific lesson title for ${pathName}", "type": "foundation|action|milestone" }
+        { "id": 1, "title": "Verb-first action under 6 words", "type": "foundation" }
       ]
     }
   ]
 }
 
-Return exactly 5 phases. Phase 1 should have 6-8 modules. Phases 2-4 should have 4-5 modules. Phase 5 should have 3-4 modules.`,
-      },
-    ],
-  })
+Return exactly 5 phases with labels: Launch, Build, Establish, Operate, Own.
+Phase 1 has 6-8 modules. Phases 2-4 have 4-5 modules. Phase 5 has 3-4 modules.`,
+        },
+      ],
+    })
 
-  const text = (message.content[0] as { text: string }).text
-  const clean = text.replace(/```json|```/g, '').trim()
-  const jsonMatch = clean.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) {
-    return NextResponse.json({ error: 'No JSON found' }, { status: 500 })
+    const text = (message.content[0] as { text: string }).text
+    const clean = text.replace(/```json|```/g, '').trim()
+    const jsonMatch = clean.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      return NextResponse.json({ error: 'No JSON found' }, { status: 500 })
+    }
+    const parsed = JSON.parse(jsonMatch[0])
+    return NextResponse.json(parsed)
+
+  } catch (err: any) {
+    console.error('Roadmap error:', err?.message || err)
+    return NextResponse.json({ error: err?.message || 'Unknown error' }, { status: 500 })
   }
-  const parsed = JSON.parse(jsonMatch[0])
-  return NextResponse.json(parsed)
 }
