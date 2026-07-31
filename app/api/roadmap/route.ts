@@ -30,6 +30,7 @@ MODULE TITLE RULES — THIS IS THE MOST IMPORTANT PART:
 - Maximum 6 words. Shorter is always better.
 - Titles are action items a person does, not lessons they read
 - No colons, no dashes, no explanatory clauses
+- Each module also needs a "preview" — one line under 10 words describing what the step involves, written plainly
 
 WRONG: "Understanding how to price your services in a competitive market"
 RIGHT: "Price your first three offers"
@@ -64,7 +65,7 @@ Return ONLY valid JSON, no markdown, no explanation:
       "label": "Launch",
       "description": "short goal specific to this path",
       "modules": [
-        { "id": 1, "title": "Verb-first action under 6 words", "type": "foundation" }
+        { "id": 1, "title": "Verb-first action under 6 words", "type": "foundation", "preview": "One line under 10 words on what this involves" }
       ]
     }
   ]
