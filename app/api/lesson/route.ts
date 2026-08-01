@@ -40,14 +40,18 @@ CONTENT RULES:
 - Mistakes must be real mistakes people make in this specific business
 
 COMPLEXITY FLAGGING:
-For each step, decide whether it is genuinely complex — meaning it involves legal filings, technical setup, tax or financial structure, licensing, insurance, or a skill that takes real practice to get right.
-- If complex, set "complex": true and write a "resourceQuery" — the exact phrase someone should search to learn it properly
-- resourceQuery must be a real, searchable phrase, 4 to 9 words, that would return useful results today
-- Include the business type or state placeholder where it helps localization
-- Good: "how to register an LLC in your state"
-- Good: "soft wash vs pressure wash siding technique"
-- Bad: "business setup" — too vague to be useful
-- If a step is simple and self-explanatory, set "complex": false and omit resourceQuery
+For each step, decide whether it is genuinely complex — legal filings, technical setup, tax or financial structure, licensing, insurance, or a skill that takes real practice.
+
+If complex, set "complex": true and provide BOTH:
+1. "resourceTopic" — pick the single closest match from this exact list, or "" if none fit:
+   ein, business_structure, register_business, licenses_permits, business_insurance, business_bank_account, business_plan, funding, taxes_self_employed, hiring_employees, marketing_sales, contracts
+2. "resourceQuery" — a real searchable phrase, 4 to 9 words, for anything the list does not cover
+
+Rules:
+- Use resourceTopic ONLY when the step is genuinely about that topic. Do not force a match.
+- Always include resourceQuery regardless, as a fallback
+- resourceQuery must return useful results today. "business setup" is too vague. "soft wash vs pressure wash siding" is good.
+- If a step is simple, set "complex": false and leave both fields empty
 - Typically 1 to 3 steps per lesson are genuinely complex. Do not flag everything.
 
 Return ONLY valid JSON, no markdown:
@@ -57,10 +61,11 @@ Return ONLY valid JSON, no markdown:
   "objective": "One sentence: what they will have when this is done",
   "why": "2-3 sentences in Vinny's voice on why this matters for ${pathName} specifically",
   "steps": [
-    {
+   {
       "title": "Verb-first step title, under 8 words",
       "detail": "2-4 sentences of specific instruction. Name tools, numbers, or scripts where useful.",
       "complex": false,
+      "resourceTopic": "",
       "resourceQuery": ""
     }
   ],
