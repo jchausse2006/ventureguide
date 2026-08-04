@@ -23,25 +23,22 @@ export async function POST(req: NextRequest) {
 
     const frame = PHASE_FRAME[phaseNum] || PHASE_FRAME[1]
 
-    // Someone who wrote their own description already chose a niche.
-    // A generic path name like "Pressure washing" has not.
     const nicheAlreadyStated = mode === 'scaling' || pathName.length > 40
     const alreadyOperating = !!priorContext?.alreadyOperating
 
     const contextBlock = alreadyOperating
       ? `
-THEY ALREADY RUN THIS BUSINESS — THIS IS NOT A BEGINNER:
+THEY ALREADY RUN THIS BUSINESS — NOT A BEGINNER:
 ${JSON.stringify(priorContext, null, 2)}
 
-They enter at Phase ${priorContext.enteredAtPhase} because they have already done the earlier work in the real world.
+They enter at Phase ${priorContext.enteredAtPhase} because they already did the earlier work in the real world.
 
 HARD RULES:
 - Include NOTHING from Phases 1 through ${Math.max(1, priorContext.enteredAtPhase - 1)}. No naming the business, no first customer, no choosing a niche, no basic legal setup.
 - Assume they already have customers, revenue, an offer, and working operations
-- Write for the specific bottleneck their answers describe — not for a generic person at this stage
-- If their answers name a blocker like pricing or hiring or systems, the modules should attack that directly
+- Write for the specific bottleneck their answers describe
 - Their revenue band tells you the scale to write for. Do not suggest tactics beneath it.
-- Treat them as someone with real operating experience. Skip anything they would find obvious.
+- Skip anything an experienced operator would find obvious.
 `
       : priorContext
       ? `
@@ -49,9 +46,9 @@ WHAT THEY HAVE ALREADY DONE:
 ${JSON.stringify(priorContext, null, 2)}
 
 Use this. It is the whole point of generating this phase now instead of upfront.
-- If they logged a price, a niche, a customer type, or an overhead figure, build on those exact numbers
-- Do not re-teach anything they already completed
-- If a decision they logged creates a constraint, respect it
+- Build on their exact logged numbers and decisions
+- Do not re-teach anything they completed
+- Respect constraints their decisions created
 - Reference their actual choices in module titles where it fits naturally
 `
       : ''
@@ -61,7 +58,7 @@ Use this. It is the whole point of generating this phase now instead of upfront.
 THEIR SITUATION (from the quiz):
 ${JSON.stringify(quizAnswers, null, 2)}
 
-Respect their real constraints — hours available, budget, transport, network.
+Respect their real constraints — hours, budget, transport, network.
 `
       : ''
 
@@ -70,31 +67,60 @@ Respect their real constraints — hours available, budget, transport, network.
       : nicheAlreadyStated
       ? `
 NICHE — ALREADY DECIDED:
-This person described their own business, so their niche is set. Do NOT ask them to choose one — that would be the app ignoring what they told us.
+This person described their own business, so their niche is set. Do NOT ask them to choose one.
 
-Module 1 should help them SHARPEN or VALIDATE the niche they already named: narrowing the customer, defining the exact offer, or confirming demand is real.
-
-Module 1 carries a "log" field with key "chosen_niche", type "text", capturing their niche in their own words. Set the placeholder to your best read of their niche from the description.
+Module 1 should SHARPEN what they already named. Use a "logGroup" of 2 to 3 fields that pin down the parts of their description that are still vague. Pre-fill each placeholder with your best read from their description.
 `
       : `
-NICHE — MUST BE CHOSEN FIRST:
-The FIRST module of Phase 1 must be about choosing a specific focus within "${pathName}".
+MODULE 1 MUST DEFINE WHAT THEY ARE ACTUALLY BUILDING.
 
-It carries a "log" field with key "chosen_niche", type "choice", offering 3 to 4 options.
+First, judge how much specification "${pathName}" genuinely needs:
 
-RULES FOR THOSE OPTIONS — DO NOT BREAK THESE:
-1. Every option must be a customer segment with real budget and purchasing authority. No hobbyists, no volunteer or student organisations, no segment that typically cannot pay for this service.
-2. Options must be roughly equal in difficulty for a beginner. If one requires licensing, regulatory compliance, or significantly more capital, either drop it or say so plainly in the option text.
-3. No option should be obviously correct. If one is clearly best and the rest are traps, the choice is fake — rewrite so each is a genuine tradeoff.
-4. Avoid the single most saturated segment in this industry unless you name the saturation in the option text.
-5. Where the more useful decision is what SERVICE they offer rather than what INDUSTRY they serve, make the options about the service instead.
+HIGH — the path name describes many different businesses. Consulting, software, design, coaching, marketing, agencies, anything digital or advisory. Someone reading only the path name could not guess what the person actually sells, to whom, or for how much.
 
-Each option is 3 to 7 words and immediately understandable.
+LOW — the path name already tells you nearly everything. Lawn care, house cleaning, dog walking, snow removal, junk removal. The service is obvious, the customer is obvious, the variation between operators is small.
+
+MODULE 1 MUST DEFINE WHAT THEY ARE ACTUALLY BUILDING.
+
+Decide how much specification "${pathName}" needs. Default to HIGH — most paths need more definition than they appear to.
+
+HIGH — use OPEN TEXT FIELDS. The path describes many different businesses. Someone reading only the path name cannot tell what the person sells, to whom, or for how much.
+Always HIGH: software, SaaS, apps, web development, consulting of any kind, coaching, agencies, marketing, design, content creation, e-commerce, courses, freelance anything, AI or automation services, bookkeeping, virtual assistance, photography, writing.
+
+LOW — use a CHOICE FIELD. Only for hands-on local services where the work itself is fixed and obvious, and the only real variable is who you serve.
+Only LOW: lawn care, snow removal, house cleaning, dog walking, pressure washing, junk removal, window cleaning, moving help, car detailing, and similar physical labour services.
+
+If the path is not clearly on the LOW list, it is HIGH. When unsure, choose HIGH — open fields never insult someone by offering options that miss.
+
+IF HIGH:
+Module 1 carries a "logGroup" of 2 to 4 open text fields, each capturing one part of the decision.
+Typical parts: what exactly they build or deliver, who specifically pays for it, what problem it solves, what they charge.
+Pick only the parts that genuinely matter for this path.
+
+Every field needs:
+- "type": "text" — never "choice"
+- "label": a direct question, max 8 words
+- "placeholder": a REAL, SPECIFIC example for this exact path. This is the most important part of the entire response. It teaches them what a good answer looks like.
+  For SaaS: "Job scheduling for HVAC contractors" not "your product idea"
+  For consulting: "Cutting no-show rates for dental clinics" not "your service"
+  A vague placeholder produces a vague answer and the whole roadmap suffers.
+- "why": what this changes downstream, max 15 words
+
+IF LOW:
+Module 1 carries a single "log" with key "chosen_niche", type "choice", 3 to 4 options.
+
+RULES FOR CHOICE OPTIONS:
+1. Every option must be a customer segment with real budget and purchasing authority. No hobbyists, no volunteer or student organisations.
+2. Options roughly equal in difficulty for a beginner. If one needs licensing, compliance, or more capital, drop it or say so in the option text.
+3. No option obviously correct. If one is clearly best and the rest are traps, rewrite them.
+4. Avoid the most saturated segment unless you name the saturation in the text.
+
+Each option is 3 to 7 words.
 `
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
+      max_tokens: 2200,
       messages: [
         {
           role: 'user',
@@ -123,22 +149,17 @@ SPECIFICITY:
 - NEVER invent company names, competitors, or apps
 - If unsure a company exists, describe the category instead
 
-LOGGED DECISIONS — BE SPARING:
-A module gets a "log" field only if it produces a number or decision that constrains later phases.
-Qualifies: a price set, a market range researched, monthly overhead calculated, a target customer committed to, a niche chosen or sharpened.
+LOGGED DECISIONS BEYOND MODULE 1 — BE SPARING:
+A module gets a "log" only if it produces a number or decision that constrains later phases.
+Qualifies: a price set, a market range researched, monthly overhead calculated.
 Does NOT qualify: confirming work happened, reflections, time spent.
-At most TWO modules in this phase get a log field. Often only one.
+At most ONE module beyond module 1 gets a log field in this phase. Often zero.
 
-Log shape when used:
-{
-  "key": "snake_case_stable_id",
-  "label": "Short question. Max 8 words.",
-  "type": "number" | "text" | "choice",
-  "unit": "$ or /month or empty string",
-  "placeholder": "example answer",
-  "options": ["only for choice, 3-4 options"],
-  "why": "Why this matters later. Max 15 words."
-}
+SHAPES:
+Single field — "log": { "key": "snake_case", "label": "Max 8 words", "type": "number"|"text"|"choice", "unit": "$ or /month or empty", "placeholder": "specific example", "options": ["only for choice"], "why": "Max 15 words" }
+Field group — "logGroup": { "intro": "One line on why these matter, max 15 words", "fields": [ { "key": "snake_case", "label": "Max 8 words", "type": "text", "placeholder": "specific real example", "why": "Max 15 words" } ] }
+
+A module has EITHER "log" OR "logGroup" — never both. Use null for neither.
 
 Module types: "foundation" (core skill), "action" (specific step), "milestone" (major checkpoint).
 
@@ -148,7 +169,7 @@ Return ONLY valid JSON, no markdown:
   "label": "${frame.label}",
   "description": "One short sentence goal, specific to this business. Under 12 words.",
   "modules": [
-    { "id": 1, "title": "Verb-first, under 6 words", "type": "foundation", "preview": "One line under 10 words on what this involves", "log": null }
+    { "id": 1, "title": "Verb-first, under 6 words", "type": "foundation", "preview": "One line under 10 words", "log": null, "logGroup": null }
   ]
 }
 
