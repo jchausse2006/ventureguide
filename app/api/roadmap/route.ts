@@ -18,11 +18,32 @@ export async function POST(req: NextRequest) {
       phaseNum = 1,
       priorContext = null,
       quizAnswers = null,
+      mode = 'discovery',
     } = await req.json()
 
     const frame = PHASE_FRAME[phaseNum] || PHASE_FRAME[1]
 
-    const contextBlock = priorContext
+    // Someone who wrote their own description already chose a niche.
+    // A generic path name like "Pressure washing" has not.
+    const nicheAlreadyStated = mode === 'scaling' || pathName.length > 40
+    const alreadyOperating = !!priorContext?.alreadyOperating
+
+    const contextBlock = alreadyOperating
+      ? `
+THEY ALREADY RUN THIS BUSINESS — THIS IS NOT A BEGINNER:
+${JSON.stringify(priorContext, null, 2)}
+
+They enter at Phase ${priorContext.enteredAtPhase} because they have already done the earlier work in the real world.
+
+HARD RULES:
+- Include NOTHING from Phases 1 through ${Math.max(1, priorContext.enteredAtPhase - 1)}. No naming the business, no first customer, no choosing a niche, no basic legal setup.
+- Assume they already have customers, revenue, an offer, and working operations
+- Write for the specific bottleneck their answers describe — not for a generic person at this stage
+- If their answers name a blocker like pricing or hiring or systems, the modules should attack that directly
+- Their revenue band tells you the scale to write for. Do not suggest tactics beneath it.
+- Treat them as someone with real operating experience. Skip anything they would find obvious.
+`
+      : priorContext
       ? `
 WHAT THEY HAVE ALREADY DONE:
 ${JSON.stringify(priorContext, null, 2)}
@@ -31,11 +52,11 @@ Use this. It is the whole point of generating this phase now instead of upfront.
 - If they logged a price, a niche, a customer type, or an overhead figure, build on those exact numbers
 - Do not re-teach anything they already completed
 - If a decision they logged creates a constraint, respect it
-- Reference their actual choices in the module titles where it fits naturally
+- Reference their actual choices in module titles where it fits naturally
 `
       : ''
 
-    const quizBlock = quizAnswers
+    const quizBlock = quizAnswers && !alreadyOperating
       ? `
 THEIR SITUATION (from the quiz):
 ${JSON.stringify(quizAnswers, null, 2)}
@@ -44,15 +65,32 @@ Respect their real constraints — hours available, budget, transport, network.
 `
       : ''
 
-    const nicheRule = phaseNum === 1
+    const nicheRule = phaseNum !== 1 || alreadyOperating
+      ? ''
+      : nicheAlreadyStated
       ? `
-CRITICAL — PHASE 1 MUST START WITH NICHE:
-The FIRST module of Phase 1 must be about choosing a specific focus within "${pathName}".
-Residential vs commercial. One customer type vs another. One service vs a menu of them.
-That module MUST carry a "log" field capturing their choice, with key "chosen_niche" and type "choice", offering 3-4 realistic options for this business.
-Everything downstream depends on this decision, so it comes first.
+NICHE — ALREADY DECIDED:
+This person described their own business, so their niche is set. Do NOT ask them to choose one — that would be the app ignoring what they told us.
+
+Module 1 should help them SHARPEN or VALIDATE the niche they already named: narrowing the customer, defining the exact offer, or confirming demand is real.
+
+Module 1 carries a "log" field with key "chosen_niche", type "text", capturing their niche in their own words. Set the placeholder to your best read of their niche from the description.
 `
-      : ''
+      : `
+NICHE — MUST BE CHOSEN FIRST:
+The FIRST module of Phase 1 must be about choosing a specific focus within "${pathName}".
+
+It carries a "log" field with key "chosen_niche", type "choice", offering 3 to 4 options.
+
+RULES FOR THOSE OPTIONS — DO NOT BREAK THESE:
+1. Every option must be a customer segment with real budget and purchasing authority. No hobbyists, no volunteer or student organisations, no segment that typically cannot pay for this service.
+2. Options must be roughly equal in difficulty for a beginner. If one requires licensing, regulatory compliance, or significantly more capital, either drop it or say so plainly in the option text.
+3. No option should be obviously correct. If one is clearly best and the rest are traps, the choice is fake — rewrite so each is a genuine tradeoff.
+4. Avoid the single most saturated segment in this industry unless you name the saturation in the option text.
+5. Where the more useful decision is what SERVICE they offer rather than what INDUSTRY they serve, make the options about the service instead.
+
+Each option is 3 to 7 words and immediately understandable.
+`
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -87,7 +125,7 @@ SPECIFICITY:
 
 LOGGED DECISIONS — BE SPARING:
 A module gets a "log" field only if it produces a number or decision that constrains later phases.
-Qualifies: a price set, a market range researched, monthly overhead calculated, a target customer committed to, a niche chosen.
+Qualifies: a price set, a market range researched, monthly overhead calculated, a target customer committed to, a niche chosen or sharpened.
 Does NOT qualify: confirming work happened, reflections, time spent.
 At most TWO modules in this phase get a log field. Often only one.
 
@@ -98,7 +136,7 @@ Log shape when used:
   "type": "number" | "text" | "choice",
   "unit": "$ or /month or empty string",
   "placeholder": "example answer",
-  "options": ["only for choice, 3-4 short options"],
+  "options": ["only for choice, 3-4 options"],
   "why": "Why this matters later. Max 15 words."
 }
 
@@ -114,7 +152,7 @@ Return ONLY valid JSON, no markdown:
   ]
 }
 
-${phaseNum === 1 ? 'Phase 1 gets 6 to 8 modules.' : 'This phase gets 4 to 6 modules.'}
+${phaseNum === 1 && !alreadyOperating ? 'Phase 1 gets 6 to 8 modules.' : 'This phase gets 4 to 6 modules.'}
 The final module should be the one that most clearly marks this phase as finished.`,
         },
       ],
