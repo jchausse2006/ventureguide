@@ -5,103 +5,78 @@ const client = new Anthropic()
 
 export async function POST(req: NextRequest) {
   try {
-    const { pathName, moduleTitle, phaseLabel, phaseNumber } = await req.json()
+    const { pathName, quizAnswers, startPhase } = await req.json()
+
+    const answersText = quizAnswers && Object.keys(quizAnswers).length > 0
+      ? JSON.stringify(quizAnswers, null, 2)
+      : 'NO QUIZ DATA AVAILABLE'
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 3000,
+      max_tokens: 1800,
       messages: [
         {
           role: 'user',
-          content: `You are Vinny, a business mentor in the VentureGuide app. Write the lesson content for one step.
+          content: `You are Vinny, a blunt but fair business mentor in the VentureGuide app. Write a short orientation for someone about to start this path.
 
-BUSINESS: ${pathName}
-PHASE: ${phaseNumber} — ${phaseLabel}
-THIS STEP: ${moduleTitle}
+THEIR PATH: ${pathName}
+STARTING PHASE: ${startPhase}
 
-Write a lesson someone can actually follow today. Not theory. The actual thing they do.
+THEIR QUIZ ANSWERS:
+${answersText}
+
+BREVITY IS THE POINT. This is read on a phone in under a minute. Every field has a hard length limit. Do not exceed them.
 
 TONE:
-- Direct, honest, no hype. You are the opposite of a course seller.
-- Never promise fast results or easy money
-- Plain language. No corporate speak, no motivational filler.
-- Assume they are smart but new to this specific thing
+- Blunt about facts, never about the person
+- Never say "you are not ready" or "you cannot do this"
+- No hype, no motivational filler, no promises about speed or money
+- Short sentences. Cut every word that is not doing work.
 
-ACCURACY — DO NOT BREAK THIS:
-- Never invent company names, tools, apps, or statistics
-- Only name a tool if you are certain it exists and is widely used
-- If you would cite a number you are unsure about, describe the pattern instead
-- No made-up case studies or success stories
+CRITICAL — WHAT YOU ACTUALLY KNOW:
+The quiz is multiple choice. If someone did not select a skill, that means THEY DID NOT MENTION IT — not that they lack it.
+- ALWAYS phrase gaps as "you did not mention X" or "if you do not already have X"
+- NEVER assert "you lack X" or "you have no experience in X"
+- If quiz data is missing, write the gaps generically about what this path requires of anyone
 
-CONTENT RULES:
-- Everything must be specific to "${pathName}" — a generic version is a failure
-- Steps are things they DO, in order, starting with a verb
-- Each step needs enough detail to act on without guessing
-- Mistakes must be real mistakes people make in this specific business
+ACCURACY:
+- Never invent company names, statistics, or dollar figures you are not confident in
+- Ranges and patterns are fine. Precise fake numbers are not.
+- Only name licenses or requirements that genuinely exist
 
-COMPLEXITY FLAGGING:
-For each step, decide whether it is genuinely complex — legal filings, technical setup, tax or financial structure, licensing, insurance, or a skill that takes real practice.
+BLOCKERS VS GAPS:
+- A BLOCKER legally or physically prevents starting. A license. A vehicle. Required capital.
+- A GAP is something they learn while doing it. Pricing. Sales. Client management.
+- Do not treat a gap as a blocker.
 
-If complex, set "complex": true and provide BOTH:
-1. "resourceTopic" — pick the closest match from this exact list, or "" if none fit:
-   ein, business_structure, register_business, licenses_permits, business_insurance, business_bank_account, business_plan, funding, taxes_self_employed, hiring_employees, marketing_sales, contracts
-2. "resourceQuery" — a real searchable phrase, 4 to 9 words
-
-Rules: use resourceTopic ONLY when genuinely about that topic. Always include resourceQuery as a fallback. Typically 1 to 3 steps per lesson are complex. Do not flag everything.
-
-LOGGED DECISIONS — BE VERY SPARING:
-A step gets a "log" field ONLY if it produces a specific number or decision that constrains everything downstream. This is about WHAT THEY DECIDED, never whether they did the work.
-
-Qualifies:
-- A price they set
-- A market range they researched
-- A monthly cost or overhead figure they calculated
-- A target customer type they committed to
-- A business or product name they chose
-
-Does NOT qualify:
-- "Did you register the business" — binary, the checkbox covers it
-- "How did it feel" — reflection, not a fact
-- "How many hours did it take" — not a constraint on anything
-- Anything that is just confirming the work happened
-
-AT MOST ONE step per lesson gets a log field. Most lessons get ZERO. If nothing in this lesson produces a downstream-constraining number or decision, every step has "log": null.
-
-When a step does qualify:
-{
-  "key": "snake_case_stable_id like chosen_price or market_range_low",
-  "label": "Short question. Max 8 words.",
-  "type": "number" or "text" or "choice",
-  "unit": "$ or /month or empty string",
-  "placeholder": "example answer",
-  "options": ["only for type choice, 2-4 short options"],
-  "why": "One line on why Vinny needs this. Max 15 words."
-}
+If their answers suggest they are OVERQUALIFIED, say so and tell them what to skip.
 
 Return ONLY valid JSON, no markdown:
 {
-  "preview": "One line under 12 words describing what this covers",
-  "timeEstimate": "e.g. 30 minutes or 2 hours",
-  "objective": "One sentence: what they will have when this is done",
-  "why": "2-3 sentences in Vinny's voice on why this matters for ${pathName} specifically",
-  "steps": [
-    {
-      "title": "Verb-first step title, under 8 words",
-      "detail": "2-4 sentences of specific instruction. Name tools, numbers, or scripts where useful.",
-      "complex": false,
-      "resourceTopic": "",
-      "resourceQuery": "",
-      "log": null
-    }
-  ],
-  "mistakes": [
-    "A specific mistake people make doing this in ${pathName}",
-    "Another specific one"
-  ],
-  "doneWhen": "One sentence describing how they know this is actually finished"
+  "reality": {
+    "headline": "One blunt sentence on what this business actually is. Max 20 words.",
+    "money": "What the money looks like early and what it can become. Max 45 words.",
+    "timeline": "Realistic time to a first paying customer, and what year one looks like. Max 45 words.",
+    "dailyWork": "The actual day to day work. Concrete and unglamorous. Max 45 words.",
+    "hardPart": "The one thing that makes most people quit this specific path. Max 35 words."
+  },
+  "standing": {
+    "verdict": "one of: strong_fit, workable, steep_climb, overqualified",
+    "summary": "Where they stand, in Vinny's voice. Max 45 words.",
+    "strengths": ["Something from their answers that genuinely helps. Max 20 words each."],
+    "blockers": [
+      { "item": "The specific thing. Max 8 words.", "why": "Why it blocks starting. Max 30 words.", "action": "What to do about it. Max 25 words." }
+    ],
+    "gaps": [
+      { "item": "The specific thing. Max 8 words.", "why": "Why it matters here. Max 25 words." }
+    ]
+  }
 }
 
-Give 4 to 6 steps and 2 to 3 mistakes.`,
+Rules:
+- 1 to 3 strengths. Return an empty array rather than inventing one.
+- 0 to 2 blockers. Most paths have zero. Only genuine hard stops.
+- 2 to 3 gaps.`,
         },
       ],
     })
@@ -119,7 +94,7 @@ Give 4 to 6 steps and 2 to 3 mistakes.`,
     return NextResponse.json(JSON.parse(jsonMatch[0]))
 
   } catch (err: any) {
-    console.error('Lesson error:', err?.message || err)
+    console.error('Intro error:', err?.message || err)
     return NextResponse.json({ error: err?.message || 'Unknown error' }, { status: 500 })
   }
 }
