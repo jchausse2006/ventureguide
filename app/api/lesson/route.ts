@@ -5,7 +5,23 @@ const client = new Anthropic()
 
 export async function POST(req: NextRequest) {
   try {
-    const { pathName, moduleTitle, phaseLabel, phaseNumber } = await req.json()
+    const { pathName, moduleTitle, phaseLabel, phaseNumber, moduleLog = null } = await req.json()
+
+    const logDirective = moduleLog
+      ? `
+REQUIRED LOG FIELD — NOT OPTIONAL:
+This module must capture a specific decision. Attach EXACTLY this log object to the ONE step where the person actually makes that decision — usually the last step, or the step where they commit to a choice.
+
+${JSON.stringify(moduleLog, null, 2)}
+
+Copy it exactly as given. Do not reword the label, change the key, or alter the options.
+Every other step in this lesson gets "log": null.
+Do not add any additional log fields beyond this one.
+`
+      : `
+LOGGED DECISIONS:
+This module does not capture a decision. Every step gets "log": null.
+`
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -43,17 +59,12 @@ COMPLEXITY FLAGGING:
 For each step, decide whether it is genuinely complex — legal filings, technical setup, tax or financial structure, licensing, insurance, or a skill that takes real practice.
 
 If complex, set "complex": true and provide BOTH:
-1. "resourceTopic" — pick the single closest match from this exact list, or "" if none fit:
+1. "resourceTopic" — pick the closest match from this exact list, or "" if none fit:
    ein, business_structure, register_business, licenses_permits, business_insurance, business_bank_account, business_plan, funding, taxes_self_employed, hiring_employees, marketing_sales, contracts
-2. "resourceQuery" — a real searchable phrase, 4 to 9 words, for anything the list does not cover
+2. "resourceQuery" — a real searchable phrase, 4 to 9 words
 
-Rules:
-- Use resourceTopic ONLY when the step is genuinely about that topic. Do not force a match.
-- Always include resourceQuery regardless, as a fallback
-- resourceQuery must return useful results today. "business setup" is too vague. "soft wash vs pressure wash siding" is good.
-- If a step is simple, set "complex": false and leave both fields empty
-- Typically 1 to 3 steps per lesson are genuinely complex. Do not flag everything.
-
+Rules: use resourceTopic ONLY when genuinely about that topic. Always include resourceQuery as a fallback. Typically 1 to 3 steps per lesson are complex. Do not flag everything.
+${logDirective}
 Return ONLY valid JSON, no markdown:
 {
   "preview": "One line under 12 words describing what this covers",
@@ -61,12 +72,13 @@ Return ONLY valid JSON, no markdown:
   "objective": "One sentence: what they will have when this is done",
   "why": "2-3 sentences in Vinny's voice on why this matters for ${pathName} specifically",
   "steps": [
-   {
+    {
       "title": "Verb-first step title, under 8 words",
       "detail": "2-4 sentences of specific instruction. Name tools, numbers, or scripts where useful.",
       "complex": false,
       "resourceTopic": "",
-      "resourceQuery": ""
+      "resourceQuery": "",
+      "log": null
     }
   ],
   "mistakes": [
