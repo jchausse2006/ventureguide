@@ -5,23 +5,39 @@ const client = new Anthropic()
 
 export async function POST(req: NextRequest) {
   try {
-    const { pathName, moduleTitle, phaseLabel, phaseNumber, moduleLog = null } = await req.json()
+    const {
+      pathName, moduleTitle, phaseLabel, phaseNumber,
+      moduleLog = null, moduleLogGroup = null,
+    } = await req.json()
 
-    const logDirective = moduleLog
-      ? `
+    let logDirective = `
+LOGGED DECISIONS:
+This module does not capture a decision. Every step gets "log": null and "logGroup": null.
+`
+
+    if (moduleLogGroup) {
+      logDirective = `
+REQUIRED FIELD GROUP — NOT OPTIONAL:
+This module captures several parts of one decision. Attach EXACTLY this logGroup object to the ONE step where the person commits to that decision — usually the final step.
+
+${JSON.stringify(moduleLogGroup, null, 2)}
+
+Copy it exactly. Do not reword labels, change keys, alter placeholders, or add fields.
+Every other step gets "log": null and "logGroup": null.
+The step you attach it to should be the step that asks them to write the decision down.
+`
+    } else if (moduleLog) {
+      logDirective = `
 REQUIRED LOG FIELD — NOT OPTIONAL:
-This module must capture a specific decision. Attach EXACTLY this log object to the ONE step where the person actually makes that decision — usually the last step, or the step where they commit to a choice.
+This module must capture a specific decision. Attach EXACTLY this log object to the ONE step where the person makes that decision — usually the last step, or the step where they commit to a choice.
 
 ${JSON.stringify(moduleLog, null, 2)}
 
-Copy it exactly as given. Do not reword the label, change the key, or alter the options.
-Every other step in this lesson gets "log": null.
-Do not add any additional log fields beyond this one.
+Copy it exactly. Do not reword the label, change the key, or alter the options.
+Every other step gets "log": null and "logGroup": null.
+Do not add any additional log fields.
 `
-      : `
-LOGGED DECISIONS:
-This module does not capture a decision. Every step gets "log": null.
-`
+    }
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -59,11 +75,11 @@ COMPLEXITY FLAGGING:
 For each step, decide whether it is genuinely complex — legal filings, technical setup, tax or financial structure, licensing, insurance, or a skill that takes real practice.
 
 If complex, set "complex": true and provide BOTH:
-1. "resourceTopic" — pick the closest match from this exact list, or "" if none fit:
+1. "resourceTopic" — closest match from this list, or "":
    ein, business_structure, register_business, licenses_permits, business_insurance, business_bank_account, business_plan, funding, taxes_self_employed, hiring_employees, marketing_sales, contracts
 2. "resourceQuery" — a real searchable phrase, 4 to 9 words
 
-Rules: use resourceTopic ONLY when genuinely about that topic. Always include resourceQuery as a fallback. Typically 1 to 3 steps per lesson are complex. Do not flag everything.
+Use resourceTopic ONLY when genuinely about that topic. Always include resourceQuery as fallback. Typically 1 to 3 steps per lesson are complex. Do not flag everything.
 ${logDirective}
 Return ONLY valid JSON, no markdown:
 {
@@ -78,7 +94,8 @@ Return ONLY valid JSON, no markdown:
       "complex": false,
       "resourceTopic": "",
       "resourceQuery": "",
-      "log": null
+      "log": null,
+      "logGroup": null
     }
   ],
   "mistakes": [
