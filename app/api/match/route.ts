@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const OPPS = [
+export const OPPS = [
   // ── SOFTWARE & TECH ──────────────────────────────────────────────
   { name: 'Freelance software development', cat: 'Software & Tech', cost: 'Free', income: '$3k–$12k/mo', timeToFirst: '4–8 weeks', diff: 'Intermediate', aiProof: true, discover: false, climates: ['four_seasons', 'warm_yearround', 'mild'], locs: ['dense_city', 'mid_city', 'small_town', 'rural'], skills: ['coding'], physical: false, goalFit: ['replace_income', 'build_business'], interests: ['tech', 'business'], incomeStyle: ['variable', 'no_pref'], peopleLevel: 'low', businessType: ['online_remote', 'product'], environment: ['home'], how: 'You find businesses or startups that need custom software built and charge per project. Start on Upwork or by cold outreach to local businesses. Over time raise your rates and collect referrals. The scale play is hiring developers and running an agency where you sell and manage while your team builds — turning yourself from a coder into a business owner.' },
 
