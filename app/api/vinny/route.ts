@@ -115,7 +115,7 @@ ${history.map((m: any) => `${m.role === 'user' ? 'Them' : 'You'}: ${m.content}`)
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 400,
+      max_tokens: 600,
       system: systemPrompt,
       messages: msgs,
     })
