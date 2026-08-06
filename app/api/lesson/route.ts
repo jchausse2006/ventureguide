@@ -81,6 +81,23 @@ If complex, set "complex": true and provide BOTH:
 
 Use resourceTopic ONLY when genuinely about that topic. Always include resourceQuery as fallback. Typically 1 to 3 steps per lesson are complex. Do not flag everything.
 ${logDirective}
+BUSINESS TERMS — TAG THEM:
+Someone new to business will hit words they do not know. When a step's detail text uses a real business or industry term that a beginner would not confidently define, wrap it in double brackets like this: [[LLC]], [[gross margin]], [[net 30]].
+
+Rules:
+- Tag the term exactly as it appears in the sentence, including plurals
+- Tag a term only the FIRST time it appears in the whole lesson
+- Maximum 4 tagged terms across all steps combined
+- Only tag genuine jargon. Not "customer", "price", "website" — those need no explanation.
+- Do not tag inside titles, only inside detail text
+
+Then include a "glossary" object defining each tagged term:
+"glossary": {
+  "LLC": "A legal structure that separates your personal money from the business. If the business gets sued, your personal assets are generally protected.",
+  "gross margin": "What is left from a sale after the direct costs of delivering it. Not profit — this is before rent, fuel, insurance."
+}
+
+Each definition: plain language, 15 to 35 words, no jargon inside the definition, and specific to how the term matters for ${pathName} where relevant. If no terms need tagging, return an empty object.
 Return ONLY valid JSON, no markdown:
 {
   "preview": "One line under 12 words describing what this covers",
@@ -102,7 +119,8 @@ Return ONLY valid JSON, no markdown:
     "A specific mistake people make doing this in ${pathName}",
     "Another specific one"
   ],
-  "doneWhen": "One sentence describing how they know this is actually finished"
+  "doneWhen": "One sentence describing how they know this is actually finished",
+  "glossary": {}
 }
 
 Give 4 to 6 steps and 2 to 3 mistakes.`,
