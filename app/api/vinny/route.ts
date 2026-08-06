@@ -72,6 +72,34 @@ USING THEIR DATA:
 
 If their quiz answers are stale or a detail seems off, ask rather than assume.`
 
+if (mode === 'stuck') {
+    const { stuckOn = {} } = await Promise.resolve({ stuckOn: context.stuckOn })
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 300,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: `They just hit the confused button on this step:
+
+STEP: ${stuckOn?.moduleTitle || 'unknown'}
+PHASE: ${stuckOn?.phaseNumber || '?'}
+WHAT THE STEP ASKS: ${stuckOn?.objective || 'not provided'}
+${stuckOn?.stepTitles?.length ? `THE SUB-STEPS:\n${stuckOn.stepTitles.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n')}` : ''}
+${stuckOn?.completedCount != null ? `They have checked off ${stuckOn.completedCount} of ${stuckOn.stepTitles?.length || '?'} sub-steps.` : ''}
+
+Open the conversation. Do not greet them.
+
+Name what this step is actually asking for in one plain sentence — as if explaining it to someone who has never done this. Then ask which part is the problem, and give them 2 or 3 specific things it usually is for this particular step so they have something to point at instead of having to articulate it.
+
+Max 60 words.`,
+        },
+      ],
+    })
+    const block = response.content.find((b: any) => b.type === 'text') as { text: string } | undefined
+    return NextResponse.json({ reply: block?.text?.trim() || '' })
+  }
     if (mode === 'opener') {
       const message = await client.messages.create({
         model: 'claude-sonnet-4-6',
