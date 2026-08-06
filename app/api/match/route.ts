@@ -258,9 +258,59 @@ function score(opp: typeof OPPS[0], answers: Record<string, string | string[]>):
   const businessType = answers.business_type as string
   const environment = answers.environment as string
   const time = answers.time as string
+  const transport = answers.transportation as string
+  const userAccess = (answers.access as string[]) || []
 
   // ── HARD DISQUALIFIER ─────────────────────────────────────────────
   if (physical === 'cant' && opp.physical) return -1
+// ── TRANSPORT AND ACCESS ─────────────────────────────────────────
+  // Some paths are physically unreachable without a vehicle
+  const needsVehicle = opp.skills.includes('driving') || opp.skills.includes('truck_van')
+  const needsTruck = opp.skills.includes('truck_van')
+
+  if (needsTruck && transport !== 'own_truck') {
+    if (transport === 'own_car') pts -= 40
+    else return -1
+  }
+  if (needsVehicle && !needsTruck) {
+    if (transport === 'public_transit') pts -= 45
+    if (transport === 'no_transport') return -1
+  }
+
+  // Mobile and on-site work is impractical without reliable transport
+  const isMobile = opp.environment.includes('indoors_mobile') || opp.environment.includes('outdoors')
+  if (isMobile && !opp.environment.includes('home')) {
+    if (transport === 'no_transport') pts -= 35
+    if (transport === 'public_transit') pts -= 15
+  }
+
+  // Desk-based paths assume a real computer
+  const needsComputer =
+    opp.environment.includes('home') &&
+    !opp.physical &&
+    ['Software & Tech', 'Finance', 'Creative'].includes(opp.cat)
+
+  if (userAccess.length > 0) {
+    const hasComputer = userAccess.includes('computer')
+    const hasNone = userAccess.includes('none_yet')
+
+    if (needsComputer && (hasNone || !hasComputer)) pts -= 50
+    if (hasComputer && needsComputer) pts += 10
+
+    // Paths that need a legal entity or a way to get paid
+    const needsFormalSetup = ['Finance', 'Healthcare', 'Skilled Trades'].includes(opp.cat)
+    if (needsFormalSetup && (hasNone || !userAccess.includes('bank_account'))) pts -= 20
+    if (needsFormalSetup && !userAccess.includes('can_register')) pts -= 15
+
+    // Equipment-heavy work needs somewhere to keep the equipment
+    const needsStorage = opp.cost === '$500+' && opp.physical
+    if (needsStorage && !userAccess.includes('storage_space') && !hasNone) pts -= 12
+
+    // Business-hours client work
+    if (opp.peopleLevel === 'high' && opp.businessType.includes('local_physical')) {
+      if (!userAccess.includes('flexible_hours') && !hasNone) pts -= 12
+    }
+  }
 
   // ── SOFT PENALTIES ────────────────────────────────────────────────
   if (!opp.climates.includes(climate)) pts -= 35
