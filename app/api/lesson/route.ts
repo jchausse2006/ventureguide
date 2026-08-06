@@ -113,6 +113,26 @@ Then include a "glossary" object defining each tagged term:
 
 Each definition: plain language, 15 to 35 words, no jargon inside the definition, and specific to how the term matters for ${pathName} where relevant. If no terms need tagging, return an empty object.
 ${logDirective}${regenBlock}
+PURCHASES — FLAG STEPS THAT INVOLVE BUYING SOMETHING:
+If a step requires the person to actually spend money on equipment, tools, materials, software, licences, or supplies, attach a "purchase" object to that step.
+
+Only flag steps where money genuinely leaves their pocket to acquire a specific thing. Not steps that merely mention cost, not steps about pricing their own services, not steps about researching without buying.
+
+Shape:
+"purchase": {
+  "item": "What they are buying. Max 6 words. e.g. 'Commercial pressure washer'",
+  "researchNote": "One line on what to compare when researching. Max 20 words. e.g. 'Compare PSI, gas vs electric, and whether parts are locally available.'",
+  "cheaperEntry": "How to start without buying it yet, if that is genuinely possible. Max 20 words. Empty string if there is no real alternative."
+}
+
+Rules for cheaperEntry:
+- Only include if it is genuinely viable. Renting, borrowing, buying used, or starting with a smaller version.
+- Never invent a workaround that does not exist. An empty string is fine and better than a fake option.
+- This matters — most people on this path start with no money, and a real alternative is often the difference between starting and stalling.
+
+DO NOT state prices yourself. You do not know what things cost in their area today. The person researches and enters the number.
+
+At most TWO steps per lesson carry a purchase. Most lessons have zero.
 Return ONLY valid JSON, no markdown:
 {
   "preview": "One line under 12 words describing what this covers",
@@ -126,8 +146,9 @@ Return ONLY valid JSON, no markdown:
       "complex": false,
       "resourceTopic": "",
       "resourceQuery": "",
-      "log": null,
-      "logGroup": null
+     "log": null,
+      "logGroup": null,
+      "purchase": null
     }
   ],
   "mistakes": [
