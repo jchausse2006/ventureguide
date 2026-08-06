@@ -19,11 +19,12 @@ export async function POST(req: NextRequest) {
       priorContext = null,
       quizAnswers = null,
       mode = 'discovery',
+      nicheStated = false,
     } = await req.json()
 
     const frame = PHASE_FRAME[phaseNum] || PHASE_FRAME[1]
 
-    const nicheAlreadyStated = mode === 'scaling' || pathName.length > 40
+    const nicheAlreadyStated = mode === 'scaling' || nicheStated || pathName.length > 40
     const alreadyOperating = !!priorContext?.alreadyOperating
 
     const ageValue = quizAnswers?.age
@@ -171,6 +172,7 @@ Never advise competing on price or undercutting competitors. This app teaches pe
 
 PURCHASES:
 If a module involves the person buying equipment, tools, or supplies, set "involvesPurchase": true on that module. This warns them before they open it. Otherwise set it to false.
+
 LOGGED DECISIONS BEYOND MODULE 1 — BE SPARING:
 A module gets a "log" only if it produces a number or decision that constrains later phases.
 Qualifies: a price set, a market range researched, monthly overhead calculated.
