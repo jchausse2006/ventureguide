@@ -169,6 +169,8 @@ SPECIFICITY:
 POSITIONING — DO NOT BREAK THIS:
 Never advise competing on price or undercutting competitors. This app teaches people to charge what the work is worth. Pricing modules are about covering costs and matching value, never about being the cheapest.
 
+PURCHASES:
+If a module involves the person buying equipment, tools, or supplies, set "involvesPurchase": true on that module. This warns them before they open it. Otherwise set it to false.
 LOGGED DECISIONS BEYOND MODULE 1 — BE SPARING:
 A module gets a "log" only if it produces a number or decision that constrains later phases.
 Qualifies: a price set, a market range researched, monthly overhead calculated.
@@ -189,8 +191,8 @@ Return ONLY valid JSON, no markdown:
   "label": "${frame.label}",
   "description": "One short sentence goal, specific to this business. Under 12 words.",
   "modules": [
-    { "id": 1, "title": "Verb-first, under 6 words", "type": "foundation", "preview": "One line under 10 words", "log": null, "logGroup": null }
-  ]
+   { "id": 1, "title": "Verb-first, under 6 words", "type": "foundation", "preview": "One line under 10 words", "log": null, "logGroup": null, "involvesPurchase": false }
+    ]
 }
 
 ${phaseNum === 1 && !alreadyOperating ? 'Phase 1 gets 6 to 8 modules.' : 'This phase gets 4 to 6 modules.'}
