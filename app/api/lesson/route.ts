@@ -7,8 +7,22 @@ export async function POST(req: NextRequest) {
   try {
     const {
       pathName, moduleTitle, phaseLabel, phaseNumber,
-      moduleLog = null, moduleLogGroup = null,
+      moduleLog = null, moduleLogGroup = null, regenReason = null,
     } = await req.json()
+
+    const regenBlock = regenReason
+      ? `
+THIS IS A SECOND ATTEMPT. The first version was rejected.
+
+WHY: ${regenReason}
+
+Do not produce something similar. Address the complaint directly:
+- "too generic" → name real tools, real scripts, real numbers. Impossible to apply elsewhere.
+- "wrong for my business" → you misread the business. Write for what they actually do.
+- "already done this" → skip the basics. Go deeper than the obvious version.
+- "too advanced" → smaller pieces, no assumed knowledge.
+`
+      : ''
 
     let logDirective = `
 LOGGED DECISIONS:
@@ -80,7 +94,7 @@ If complex, set "complex": true and provide BOTH:
 2. "resourceQuery" — a real searchable phrase, 4 to 9 words
 
 Use resourceTopic ONLY when genuinely about that topic. Always include resourceQuery as fallback. Typically 1 to 3 steps per lesson are complex. Do not flag everything.
-${logDirective}
+
 BUSINESS TERMS — TAG THEM:
 Someone new to business will hit words they do not know. When a step's detail text uses a real business or industry term that a beginner would not confidently define, wrap it in double brackets like this: [[LLC]], [[gross margin]], [[net 30]].
 
@@ -98,6 +112,7 @@ Then include a "glossary" object defining each tagged term:
 }
 
 Each definition: plain language, 15 to 35 words, no jargon inside the definition, and specific to how the term matters for ${pathName} where relevant. If no terms need tagging, return an empty object.
+${logDirective}${regenBlock}
 Return ONLY valid JSON, no markdown:
 {
   "preview": "One line under 12 words describing what this covers",

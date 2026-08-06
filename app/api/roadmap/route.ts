@@ -19,12 +19,27 @@ export async function POST(req: NextRequest) {
       priorContext = null,
       quizAnswers = null,
       mode = 'discovery',
+      regenReason = null,
     } = await req.json()
 
     const frame = PHASE_FRAME[phaseNum] || PHASE_FRAME[1]
 
     const nicheAlreadyStated = mode === 'scaling' || pathName.length > 40
     const alreadyOperating = !!priorContext?.alreadyOperating
+
+    const regenBlock = regenReason
+      ? `
+THIS IS A SECOND ATTEMPT. The first version was rejected.
+
+WHY THEY REJECTED IT: ${regenReason}
+
+Do not produce something similar. Address the complaint directly:
+- "too generic" → name real tools, real numbers, real customer types. Every module must be impossible to apply to a different business.
+- "wrong for my business" → you misread what they do. Re-read the business name and quiz answers and write for that, not the category.
+- "already done this" → skip the basics entirely. Assume everything obvious is handled and go further.
+- "too advanced" → break it into smaller pieces. Assume no prior knowledge and no existing assets.
+`
+      : ''
 
     const contextBlock = alreadyOperating
       ? `
@@ -58,7 +73,7 @@ Use this. It is the whole point of generating this phase now instead of upfront.
 THEIR SITUATION (from the quiz):
 ${JSON.stringify(quizAnswers, null, 2)}
 
-Respect their real constraints — hours, budget, transport, network.
+Respect their real constraints — hours, budget, transport, and what they actually have access to. If they said they have no computer, no printer, or no bank account, do not write steps that require those.
 `
       : ''
 
@@ -72,14 +87,6 @@ This person described their own business, so their niche is set. Do NOT ask them
 Module 1 should SHARPEN what they already named. Use a "logGroup" of 2 to 3 fields that pin down the parts of their description that are still vague. Pre-fill each placeholder with your best read from their description.
 `
       : `
-MODULE 1 MUST DEFINE WHAT THEY ARE ACTUALLY BUILDING.
-
-First, judge how much specification "${pathName}" genuinely needs:
-
-HIGH — the path name describes many different businesses. Consulting, software, design, coaching, marketing, agencies, anything digital or advisory. Someone reading only the path name could not guess what the person actually sells, to whom, or for how much.
-
-LOW — the path name already tells you nearly everything. Lawn care, house cleaning, dog walking, snow removal, junk removal. The service is obvious, the customer is obvious, the variation between operators is small.
-
 MODULE 1 MUST DEFINE WHAT THEY ARE ACTUALLY BUILDING.
 
 Decide how much specification "${pathName}" needs. Default to HIGH — most paths need more definition than they appear to.
@@ -129,7 +136,7 @@ Each option is 3 to 7 words.
 BUSINESS: ${pathName}
 PHASE: ${phaseNum} — ${frame.label}
 GOAL OF THIS PHASE: ${frame.goal}
-${quizBlock}${contextBlock}${nicheRule}
+${quizBlock}${contextBlock}${regenBlock}${nicheRule}
 
 MODULE TITLE RULES — MOST IMPORTANT PART:
 - Every title MUST start with a present-tense action verb
