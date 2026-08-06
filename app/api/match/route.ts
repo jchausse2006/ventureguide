@@ -228,11 +228,18 @@ export const OPPS = [
 ]
 
 const BUDGET_ORDER = ['Free', 'Under $100', '$100–$500', '$500+']
+const USER_BUDGET_RANK: Record<string, number> = {
+  zero: 0,
+  under100: 1,
+  '100to500': 2,
+  '500to2500': 3,
+  '2500plus': 4,
+}
 
 function budgetFits(userBudget: string, pathCost: string): boolean {
-  const userIdx = BUDGET_ORDER.indexOf(userBudget)
+  const userIdx = USER_BUDGET_RANK[userBudget]
   const pathIdx = BUDGET_ORDER.indexOf(pathCost)
-  if (userIdx === -1 || pathIdx === -1) return true
+  if (userIdx === undefined || pathIdx === -1) return true
   return pathIdx <= userIdx
 }
 
@@ -259,7 +266,7 @@ function score(opp: typeof OPPS[0], answers: Record<string, string | string[]>):
   if (!opp.climates.includes(climate)) pts -= 35
   if (!opp.locs.includes(location)) pts -= 35
   if (!budgetFits(budget, opp.cost)) {
-    const gap = BUDGET_ORDER.indexOf(opp.cost) - BUDGET_ORDER.indexOf(budget)
+    const gap = BUDGET_ORDER.indexOf(opp.cost) - (USER_BUDGET_RANK[budget] ?? 0)
     pts -= gap * 25
   }
   if (physical === 'prefer_not' && opp.physical) pts -= 20

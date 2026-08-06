@@ -19,7 +19,6 @@ export async function POST(req: NextRequest) {
       priorContext = null,
       quizAnswers = null,
       mode = 'discovery',
-      regenReason = null,
     } = await req.json()
 
     const frame = PHASE_FRAME[phaseNum] || PHASE_FRAME[1]
@@ -27,17 +26,27 @@ export async function POST(req: NextRequest) {
     const nicheAlreadyStated = mode === 'scaling' || pathName.length > 40
     const alreadyOperating = !!priorContext?.alreadyOperating
 
-    const regenBlock = regenReason
+    const ageValue = quizAnswers?.age
+    const isMinor = ageValue === '13-15' || ageValue === '16-17'
+
+    const ageBlock = isMinor
       ? `
-THIS IS A SECOND ATTEMPT. The first version was rejected.
+THEY ARE UNDER 18 — THIS CHANGES WHAT IS POSSIBLE:
+Age bracket: ${ageValue}
 
-WHY THEY REJECTED IT: ${regenReason}
+Hard constraints you must respect:
+- They generally cannot sign binding contracts without a parent or guardian
+- They cannot register an LLC or corporation alone in most states
+- They cannot open a business bank account alone — most banks require 18, some offer joint minor accounts
+- Many payment platforms require 18. Some allow a parent-linked account.
+- Some trades and licences have minimum age requirements
 
-Do not produce something similar. Address the complaint directly:
-- "too generic" → name real tools, real numbers, real customer types. Every module must be impossible to apply to a different business.
-- "wrong for my business" → you misread what they do. Re-read the business name and quiz answers and write for that, not the category.
-- "already done this" → skip the basics entirely. Assume everything obvious is handled and go further.
-- "too advanced" → break it into smaller pieces. Assume no prior knowledge and no existing assets.
+How to handle it:
+- Do NOT drop the legal or financial steps. They still matter.
+- Rewrite them so a parent or guardian is part of the step. "Sit down with a parent and open a joint business account" not "open a business account."
+- Where a platform or licence has an age minimum, say so plainly in the module preview so they are not blindsided
+- Never be condescending. They are running a business, not doing a school project.
+- Favour work they can legally do now over work that requires waiting until 18
 `
       : ''
 
@@ -64,6 +73,7 @@ Use this. It is the whole point of generating this phase now instead of upfront.
 - Build on their exact logged numbers and decisions
 - Do not re-teach anything they completed
 - Respect constraints their decisions created
+- If they marked a module as not relevant or already handled, do not bring that topic back
 - Reference their actual choices in module titles where it fits naturally
 `
       : ''
@@ -74,7 +84,7 @@ THEIR SITUATION (from the quiz):
 ${JSON.stringify(quizAnswers, null, 2)}
 
 Respect their real constraints — hours, budget, transport, and what they actually have access to. If they said they have no computer, no printer, or no bank account, do not write steps that require those.
-`
+${ageBlock}`
       : ''
 
     const nicheRule = phaseNum !== 1 || alreadyOperating
@@ -136,7 +146,7 @@ Each option is 3 to 7 words.
 BUSINESS: ${pathName}
 PHASE: ${phaseNum} — ${frame.label}
 GOAL OF THIS PHASE: ${frame.goal}
-${quizBlock}${contextBlock}${regenBlock}${nicheRule}
+${quizBlock}${contextBlock}${nicheRule}
 
 MODULE TITLE RULES — MOST IMPORTANT PART:
 - Every title MUST start with a present-tense action verb
@@ -155,6 +165,9 @@ SPECIFICITY:
 - Name real tools, platforms, or customer types where it helps
 - NEVER invent company names, competitors, or apps
 - If unsure a company exists, describe the category instead
+
+POSITIONING — DO NOT BREAK THIS:
+Never advise competing on price or undercutting competitors. This app teaches people to charge what the work is worth. Pricing modules are about covering costs and matching value, never about being the cheapest.
 
 LOGGED DECISIONS BEYOND MODULE 1 — BE SPARING:
 A module gets a "log" only if it produces a number or decision that constrains later phases.

@@ -46,6 +46,11 @@ ACCURACY:
 - Ranges and patterns are fine. Precise fake numbers are not.
 - Only name licenses or requirements that genuinely exist
 
+IF THEY ARE UNDER 18:
+Check their age answer. If it is "13-15" or "16-17", legal capacity is a real constraint — contracts, business registration, bank accounts, and some platforms all require 18 or a parent involved.
+
+Treat this as a workable constraint, not a barrier. Name it plainly in the blockers or gaps where it genuinely applies, and say what the workaround is — usually a parent or guardian co-signing. Never suggest they wait until they are older. Plenty of the work is doable now.
+
 BLOCKERS VS GAPS:
 - A BLOCKER legally or physically prevents starting. A license. A vehicle. Required capital.
 - A GAP is something they learn while doing it. Pricing. Sales. Client management.
