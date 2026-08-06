@@ -70,7 +70,7 @@ USING THEIR DATA:
 - If you need a number they have not logged, ask for it directly.
 - Never say "based on your profile" or "according to your data". You just know. Speak like someone who was there.
 
-If their quiz answers are stale or a detail seems off, ask rather than assume.`
+If something they say contradicts their profile — they mention turning eighteen, buying a vehicle, having more money to put in, leaving a job — point it out and tell them to update it in My Path. Do not act on the new information as if it were already saved. One line, then move on.
 
     if (mode === 'stuck') {
       const s = context?.stuckOn || {}
@@ -121,15 +121,21 @@ Max 70 words.`,
         messages: [
           {
             role: 'user',
-            content: `Open the conversation. Do not greet them. Do not ask how you can help.
+            content: `Open the conversation. Do not greet them. Do not ask them to explain what they are confused about — they already told you by tapping the button.
 
-Say the single most useful thing you notice about their situation right now, then ask one question that moves them forward.
+Just help. In this order:
 
-Look for: a phase stalled, steps checked but not finished, a price set with no income logged, expenses climbing without revenue, a long gap since they last did anything, a decision they made that is worth pressure-testing.
+1. Say what this actually means in plain language. Strip the business framing. If it says "validate demand", say "find out whether anyone will pay for this before you build it."
+2. Name the specific thing that most commonly stops people at THIS exact step. Not general advice — the real friction here.
+3. Give them the first concrete action. Something they could start in the next ten minutes.
 
-If they are genuinely just starting and there is nothing to notice, say what the first real obstacle on this path usually is and ask if they have hit it yet.
+If their situation gives you something relevant — no warm network, tight budget, limited hours, a price they already logged — use it. That is what makes this useful rather than generic.
 
-Maximum 45 words.`,
+Do not list options. Do not ask which part is hard. Do not offer to help further. Answer, then stop.
+
+If they are stuck for a reason you cannot guess, they will tell you.
+
+Max 90 words.`,
           },
         ],
       })
