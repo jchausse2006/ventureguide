@@ -20,7 +20,7 @@ ${JSON.stringify(context, null, 2)}
 ${memory ? `\nWHAT YOU REMEMBER FROM EARLIER CONVERSATIONS:\n${memory}` : ''}
 `
 
-    const systemPrompt = `You are Vinny, the business partner inside the VentureGuide app. You are a vulture in a suit — sharp-eyed, patient, and you notice what people avoid looking at.
+    const systemPrompt = `You are Vinny, the business partner inside the VentureGuide app.
 
 BUSINESS: ${pathName}
 ${contextBlock}
@@ -72,34 +72,47 @@ USING THEIR DATA:
 
 If their quiz answers are stale or a detail seems off, ask rather than assume.`
 
-if (mode === 'stuck') {
-    const { stuckOn = {} } = await Promise.resolve({ stuckOn: context.stuckOn })
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 300,
-      system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: `They just hit the confused button on this step:
+    if (mode === 'stuck') {
+      const s = context?.stuckOn || {}
+      const isSingleStep = !!s.stepTitle
 
-STEP: ${stuckOn?.moduleTitle || 'unknown'}
-PHASE: ${stuckOn?.phaseNumber || '?'}
-WHAT THE STEP ASKS: ${stuckOn?.objective || 'not provided'}
-${stuckOn?.stepTitles?.length ? `THE SUB-STEPS:\n${stuckOn.stepTitles.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n')}` : ''}
-${stuckOn?.completedCount != null ? `They have checked off ${stuckOn.completedCount} of ${stuckOn.stepTitles?.length || '?'} sub-steps.` : ''}
+      const detail = isSingleStep
+        ? `They are stuck on ONE specific sub-step inside a lesson.
+
+THE LESSON: ${s.moduleTitle || 'unknown'}
+THE SUB-STEP THEY ARE STUCK ON: ${s.stepTitle}
+WHAT THAT SUB-STEP SAYS TO DO: ${s.stepDetail || 'not provided'}
+${s.stepIndex != null && s.totalSteps ? `This is step ${s.stepIndex + 1} of ${s.totalSteps}.` : ''}
+
+Focus tightly on THIS sub-step. Not the whole lesson.`
+        : `They are stuck on a whole lesson.
+
+THE LESSON: ${s.moduleTitle || 'unknown'}
+WHAT IT ASKS FOR: ${s.objective || 'not provided'}
+${s.stepTitles?.length ? `THE SUB-STEPS:\n${s.stepTitles.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n')}` : ''}
+${s.completedCount != null ? `They have checked off ${s.completedCount} of ${s.stepTitles?.length || '?'} sub-steps.` : ''}`
+
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 400,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: `${detail}
 
 Open the conversation. Do not greet them.
 
-Name what this step is actually asking for in one plain sentence — as if explaining it to someone who has never done this. Then ask which part is the problem, and give them 2 or 3 specific things it usually is for this particular step so they have something to point at instead of having to articulate it.
+Restate what this is actually asking for in one plain sentence — as if explaining to someone who has never done it. Then ask which part is the problem, and name 2 or 3 specific things it usually is for this exact thing, so they have something to point at instead of having to articulate it.
 
-Max 60 words.`,
-        },
-      ],
-    })
-    const block = response.content.find((b: any) => b.type === 'text') as { text: string } | undefined
-    return NextResponse.json({ reply: block?.text?.trim() || '' })
-  }
+Max 70 words.`,
+          },
+        ],
+      })
+      const block = response.content.find((b: any) => b.type === 'text') as { text: string } | undefined
+      return NextResponse.json({ reply: block?.text?.trim() || '' })
+    }
+
     if (mode === 'opener') {
       const message = await client.messages.create({
         model: 'claude-sonnet-4-6',
