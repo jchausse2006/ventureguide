@@ -4,6 +4,41 @@ import { dailyLimitReached } from '../../lib/supabase'
 
 const client = new Anthropic()
 
+// Vinny poses available for a chat moment (excludes "perched", which is reserved
+// for the lesson-screen help bubble, and "writing", reserved for content generation).
+const MOODS = ['standing', 'pondering', 'approving', 'explaining', 'celebrating', 'pointing', 'welcoming', 'sitting'] as const
+
+const REPLY_TOOL = {
+  name: 'send_reply',
+  description: "Send Vinny's reply to the user, tagged with the mood/pose that best matches it — used to pick which Vinny illustration is shown.",
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      reply: { type: 'string' as const, description: 'The reply text, exactly as it should be shown to the user.' },
+      mood: { type: 'string' as const, enum: MOODS as unknown as string[], description: 'Whichever mood best matches the tone of this specific reply.' },
+    },
+    required: ['reply', 'mood'],
+  },
+}
+
+// Forces the model to call send_reply so we always get back structured {reply, mood}
+// instead of parsing JSON out of free-form text (which breaks on quotes/newlines).
+async function replyWithMood(systemPrompt: string | undefined, userContent: string, maxTokens: number, priorMessages: any[] = []) {
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: maxTokens,
+    system: systemPrompt,
+    tools: [REPLY_TOOL],
+    tool_choice: { type: 'tool', name: 'send_reply' },
+    messages: [...priorMessages, { role: 'user' as const, content: userContent }],
+  })
+  const toolUse = response.content.find((b: any) => b.type === 'tool_use') as { input: { reply: string; mood: string } } | undefined
+  return {
+    reply: toolUse?.input?.reply?.trim() || '',
+    mood: MOODS.includes(toolUse?.input?.mood as any) ? toolUse!.input.mood : 'standing',
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const {
@@ -19,6 +54,7 @@ export async function POST(req: NextRequest) {
     if ((mode === 'chat' || mode === 'stuck') && await dailyLimitReached(accessToken)) {
       return NextResponse.json({
         reply: "That's today's conversation. Thirty replies a day keeps this useful instead of a slot machine — come back tomorrow and we'll pick up where you left off.",
+        mood: 'sitting',
         limited: true,
       })
     }
@@ -102,36 +138,18 @@ WHAT IT ASKS FOR: ${s.objective || 'not provided'}
 ${s.stepTitles?.length ? `THE SUB-STEPS:\n${s.stepTitles.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n')}` : ''}
 ${s.completedCount != null ? `They have checked off ${s.completedCount} of ${s.stepTitles?.length || '?'} sub-steps.` : ''}`
 
-      const response = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 400,
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: `${detail}
+      const { reply, mood } = await replyWithMood(systemPrompt, `${detail}
 
 Open the conversation. Do not greet them.
 
 Restate what this is actually asking for in one plain sentence — as if explaining to someone who has never done it. Then ask which part is the problem, and name 2 or 3 specific things it usually is for this exact thing, so they have something to point at instead of having to articulate it.
 
-Max 70 words.`,
-          },
-        ],
-      })
-      const block = response.content.find((b: any) => b.type === 'text') as { text: string } | undefined
-      return NextResponse.json({ reply: block?.text?.trim() || '' })
+Max 70 words.`, 500)
+      return NextResponse.json({ reply, mood })
     }
 
     if (mode === 'opener') {
-      const message = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 200,
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: `Open the conversation. Do not greet them. Do not ask them to explain what they are confused about — they already told you by tapping the button.
+      const { reply, mood } = await replyWithMood(systemPrompt, `Open the conversation. Do not greet them. Do not ask them to explain what they are confused about — they already told you by tapping the button.
 
 Just help. In this order:
 
@@ -145,12 +163,8 @@ Do not list options. Do not ask which part is hard. Do not offer to help further
 
 If they are stuck for a reason you cannot guess, they will tell you.
 
-Max 90 words.`,
-          },
-        ],
-      })
-      const block = message.content.find((b: any) => b.type === 'text') as { text: string } | undefined
-      return NextResponse.json({ reply: block?.text?.trim() || '' })
+Max 90 words.`, 300)
+      return NextResponse.json({ reply, mood })
     }
 
     if (mode === 'summarise') {
@@ -176,20 +190,9 @@ ${history.map((m: any) => `${m.role === 'user' ? 'Them' : 'You'}: ${m.content}`)
       return NextResponse.json({ summary: block?.text?.trim() || '' })
     }
 
-    const msgs = [
-      ...history.map((m: any) => ({ role: m.role, content: m.content })),
-      { role: 'user' as const, content: message },
-    ]
-
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 600,
-      system: systemPrompt,
-      messages: msgs,
-    })
-
-    const block = response.content.find((b: any) => b.type === 'text') as { text: string } | undefined
-    return NextResponse.json({ reply: block?.text?.trim() || '' })
+    const priorMsgs = history.map((m: any) => ({ role: m.role, content: m.content }))
+    const { reply, mood } = await replyWithMood(systemPrompt, message, 700, priorMsgs)
+    return NextResponse.json({ reply, mood })
 
   } catch (err: any) {
     console.error('Vinny error:', err?.message || err)
