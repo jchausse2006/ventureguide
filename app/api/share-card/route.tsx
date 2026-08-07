@@ -23,16 +23,31 @@ export async function GET(req: NextRequest) {
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between',
           backgroundColor: '#0a0a0a',
           padding: 80,
+          position: 'relative',
         }}
       >
+        <div
+          style={{
+            position: 'absolute',
+            display: 'flex',
+            right: -60,
+            top: 480,
+            fontSize: 620,
+            fontWeight: 900,
+            color: color + '14',
+            lineHeight: 1,
+          }}
+        >
+          {phaseNum}
+        </div>
+
         <div style={{ display: 'flex', fontSize: 34, fontWeight: 900, color: '#ffffff' }}>
           Venture<span style={{ color }}>Guide</span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center' }}>
           <div
             style={{
               display: 'flex',
