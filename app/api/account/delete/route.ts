@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
     const admin = supabaseAdmin()
     const { data: { user }, error: userErr } = await admin.auth.getUser(accessToken)
     if (userErr || !user) {
-      return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
+      console.error('Account delete auth check failed:', userErr?.message || 'no user returned')
+      return NextResponse.json({ error: userErr?.message || 'Not signed in' }, { status: 401 })
     }
 
     for (const table of USER_TABLES) {
