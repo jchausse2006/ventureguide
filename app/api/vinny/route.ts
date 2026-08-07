@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
+import { dailyLimitReached } from '../../lib/supabase'
 
 const client = new Anthropic()
 
@@ -12,7 +13,15 @@ export async function POST(req: NextRequest) {
       history = [],
       message = '',
       memory = '',
+      accessToken = '',
     } = await req.json()
+
+    if ((mode === 'chat' || mode === 'stuck') && await dailyLimitReached(accessToken)) {
+      return NextResponse.json({
+        reply: "That's today's conversation. Thirty replies a day keeps this useful instead of a slot machine — come back tomorrow and we'll pick up where you left off.",
+        limited: true,
+      })
+    }
 
     const contextBlock = `
 WHAT YOU KNOW ABOUT THEM:
@@ -71,6 +80,7 @@ USING THEIR DATA:
 - Never say "based on your profile" or "according to your data". You just know. Speak like someone who was there.
 
 If something they say contradicts their profile — they mention turning eighteen, buying a vehicle, having more money to put in, leaving a job — point it out and tell them to update it in My Path. Do not act on the new information as if it were already saved. One line, then move on.
+`
 
     if (mode === 'stuck') {
       const s = context?.stuckOn || {}
